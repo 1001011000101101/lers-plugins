@@ -20,9 +20,11 @@ WinForms плагин для АРМ оператора ЛЭРС.
 1. Распаковать архив
 2. В папке `LersReportGeneratorPlugin`: **Правой кнопкой мыши на `install.bat` → Запустить от имени администратора**
 3. Перезапустить АРМ ЛЭРС
-4. Плагин появится в меню: **Сервис → Генератор отчётов**
+4. В АРМ: **Администрирование → Внешние модули → Добавить из файла**
+5. Выбрать: `C:\Program Files\LERS\Client\Plugins\LersReportGeneratorPlugin\LersReportGeneratorPlugin.dll`
+6. Плагин появится в меню: **Сервис → Генератор отчётов**
 
-Скрипт автоматически соберёт и установит плагин в `C:\Program Files\LERS\Client\Plugins\`
+Скрипт install.bat автоматически соберёт и скопирует файлы в `C:\Program Files\LERS\Client\Plugins\`
 
 ### LersReportProxy
 
