@@ -39,7 +39,7 @@ Windows Service - прокси-служба для удалённых серве
 **Установка:**
 ```powershell
 cd LersReportProxy
-.\install.ps1 -Port 5377
+.\install.bat
 ```
 
 ### LersReportCommon
@@ -50,21 +50,6 @@ cd LersReportProxy
 - `Logger.cs` - универсальный файловый логгер
 - `ReflectionHelper.cs` - работа с reflection для ЛЭРС API
 - `Constants.cs` - общие константы
-
-## Очистка артефактов сборки
-
-Для очистки папок `bin/`, `obj/` и `.build-hash` файлов (уменьшение размера перед копированием):
-
-```powershell
-.\clean.bat                # Простая очистка
-.\clean.bat -v             # С подробным выводом
-```
-
-Или напрямую через PowerShell:
-```powershell
-.\clean.ps1                # Простая очистка
-.\clean.ps1 -Verbose       # С подробным выводом
-```
 
 ## Системные требования
 
