@@ -1,0 +1,104 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>LersReportProxy</RootNamespace>
+    <AssemblyName>LersReportProxy</AssemblyName>
+
+    <!-- Подавить предупреждения о конфликтах версий сборок (NuGet vs LERS DLL) -->
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+
+    <!-- Disable auto-generated attributes that conflict with AssemblyInfo.cs -->
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+
+    <!-- Путь к ЛЭРС DLL -->
+    <LersDllPath Condition="'$(LersDllPath)' == ''">C:\Program Files\LERS\Client</LersDllPath>
+  </PropertyGroup>
+
+  <!-- Auto-increment version on build (only in dev environment) -->
+  <Import Project="..\Build\AutoVersion.targets" Condition="Exists('..\Build\AutoVersion.targets')" />
+
+  <!-- Fallback: read version from version.json if AutoVersion.targets not available -->
+  <Target Name="ReadVersionFromJsonFallback" BeforeTargets="BeforeBuild" Condition="!Exists('..\Build\AutoVersion.targets') AND Exists('$(MSBuildProjectDirectory)\version.json')">
+    <PropertyGroup>
+      <VersionJsonContent>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\version.json'))</VersionJsonContent>
+      <VersionMajor>$([System.Text.RegularExpressions.Regex]::Match('$(VersionJsonContent)', '"major"\s*:\s*(\d+)').Groups[1].Value)</VersionMajor>
+      <VersionMinor>$([System.Text.RegularExpressions.Regex]::Match('$(VersionJsonContent)', '"minor"\s*:\s*(\d+)').Groups[1].Value)</VersionMinor>
+      <VersionPatch>$([System.Text.RegularExpressions.Regex]::Match('$(VersionJsonContent)', '"patch"\s*:\s*(\d+)').Groups[1].Value)</VersionPatch>
+      <Version>$(VersionMajor).$(VersionMinor).$(VersionPatch)</Version>
+      <FileVersion>$(Version).0</FileVersion>
+      <AssemblyVersion>$(Version).0</AssemblyVersion>
+    </PropertyGroup>
+    <Message Importance="High" Text="$(MSBuildProjectName) version: $(Version) (from version.json)" />
+  </Target>
+
+  <!-- Системные ссылки -->
+  <ItemGroup>
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <!-- Ссылки на ЛЭРС DLL - аналогично LersAssistant.WebAPI -->
+  <ItemGroup>
+    <Reference Include="Lers.Core">
+      <HintPath>$(LersDllPath)\Lers.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Models">
+      <HintPath>$(LersDllPath)\Lers.Models.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.System">
+      <HintPath>$(LersDllPath)\Lers.System.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Utils">
+      <HintPath>$(LersDllPath)\Lers.Utils.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Http">
+      <HintPath>$(LersDllPath)\Lers.Http.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Plugins">
+      <HintPath>$(LersDllPath)\Lers.Plugins.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Serialization">
+      <HintPath>$(LersDllPath)\Lers.Serialization.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Reports">
+      <HintPath>$(LersDllPath)\Lers.Reports.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Reporting.DataSource">
+      <HintPath>$(LersDllPath)\Lers.Reporting.DataSource.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Reporting.Export">
+      <HintPath>$(LersDllPath)\Lers.Reporting.Export.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Lers.Reporting.Templates">
+      <HintPath>$(LersDllPath)\Lers.Reporting.Templates.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
+  </ItemGroup>
+
+  <!-- Project references -->
+  <ItemGroup>
+    <ProjectReference Include="..\LersReportCommon\LersReportCommon.csproj" />
+  </ItemGroup>
+
+</Project>
