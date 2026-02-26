@@ -39,7 +39,7 @@ WinForms плагин для АРМ оператора ЛЭРС.
 
 - Работа с локальным и удалёнными серверами
 
-<img width="800" height="485" alt="servers_light" src="https://github.com/user-attachments/assets/6b410923-28c9-49e7-a27e-b6987da73626" />
+<img width="533" height="323" alt="servers_light" src="https://github.com/user-attachments/assets/6b410923-28c9-49e7-a27e-b6987da73626" />
 
 - Массовая генерация со всех серверов
 - Экспорт в PDF/XLSX
