@@ -36,12 +36,11 @@ WinForms плагин для АРМ оператора ЛЭРС.
 - Генерация отчётов ИПУ (индивидуальные приборы учёта)
 
 <img width="533" height="725" alt="screenshot_light" src="https://github.com/user-attachments/assets/a8bc327a-98be-47a8-a598-1960684285ea" />
-- 
+
 - Работа с локальным и удалёнными серверами
 
 <img width="800" height="485" alt="servers_light" src="https://github.com/user-attachments/assets/6b410923-28c9-49e7-a27e-b6987da73626" />
 
-- 
 - Массовая генерация со всех серверов
 - Экспорт в PDF/XLSX
 - Импорт/экспорт серверов с шифрованием паролей
