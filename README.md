@@ -30,7 +30,7 @@ install.bat    # Правой кнопкой → Запустить от име�
 
 WinForms плагин для АРМ оператора ЛЭРС.
 
-<img width="800" height="1087" alt="screenshot_light" src="https://github.com/user-attachments/assets/a8bc327a-98be-47a8-a598-1960684285ea" />
+<img width="533" height="725" alt="screenshot_light" src="https://github.com/user-attachments/assets/a8bc327a-98be-47a8-a598-1960684285ea" />
 
 **Возможности:**
 - Генерация отчётов ОДПУ (общедомовые приборы учёта)
