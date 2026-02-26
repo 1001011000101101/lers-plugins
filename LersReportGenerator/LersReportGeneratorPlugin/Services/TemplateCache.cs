@@ -6,6 +6,21 @@ using LersReportGeneratorPlugin.Models;
 namespace LersReportGeneratorPlugin.Services
 {
     /// <summary>
+    /// Статус кэшированных данных
+    /// </summary>
+    public enum CacheStatus
+    {
+        /// <summary>Успешно загружено с данными</summary>
+        LoadedWithData,
+
+        /// <summary>Успешно загружено, но 0 шаблонов (сервер ответил корректно)</summary>
+        LoadedEmpty,
+
+        /// <summary>Ошибка при загрузке (сервер недоступен или другая ошибка)</summary>
+        Error
+    }
+
+    /// <summary>
     /// Кэш шаблонов отчётов. Шаблоны редко меняются, поэтому кэшируем их
     /// на время сессии работы плагина.
     /// </summary>
@@ -18,6 +33,7 @@ namespace LersReportGeneratorPlugin.Services
         {
             public List<ReportTemplateInfo> Templates { get; set; }
             public DateTime LoadedAt { get; set; }
+            public CacheStatus Status { get; set; }
         }
 
         /// <summary>
@@ -54,8 +70,26 @@ namespace LersReportGeneratorPlugin.Services
             {
                 if (_cache.TryGetValue(key, out var entry))
                 {
-                    Logger.Info($"[TemplateCache] Возвращаем из кэша: {key} ({entry.Templates.Count} шаблонов, загружено {entry.LoadedAt:HH:mm:ss})");
+                    string statusText = entry.Status == CacheStatus.Error ? "ошибка" :
+                                       entry.Status == CacheStatus.LoadedEmpty ? "пусто" : "данные";
+                    Logger.Info($"[TemplateCache] Возвращаем из кэша: {key} ({entry.Templates.Count} шаблонов, {statusText}, загружено {entry.LoadedAt:HH:mm:ss})");
                     return entry.Templates;
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Проверяет статус кэша для сервера
+        /// </summary>
+        public static CacheStatus? GetStatus(string serverName, MeasurePointType pointType, ResourceType resourceType)
+        {
+            var key = MakeKey(serverName, pointType, resourceType);
+            lock (_lock)
+            {
+                if (_cache.TryGetValue(key, out var entry))
+                {
+                    return entry.Status;
                 }
                 return null;
             }
@@ -64,7 +98,7 @@ namespace LersReportGeneratorPlugin.Services
         /// <summary>
         /// Сохраняет шаблоны в кэш
         /// </summary>
-        public static void Set(string serverName, MeasurePointType pointType, ResourceType resourceType, List<ReportTemplateInfo> templates)
+        public static void Set(string serverName, MeasurePointType pointType, ResourceType resourceType, List<ReportTemplateInfo> templates, CacheStatus status)
         {
             var key = MakeKey(serverName, pointType, resourceType);
             lock (_lock)
@@ -72,9 +106,13 @@ namespace LersReportGeneratorPlugin.Services
                 _cache[key] = new CacheEntry
                 {
                     Templates = templates,
-                    LoadedAt = DateTime.Now
+                    LoadedAt = DateTime.Now,
+                    Status = status
                 };
-                Logger.Info($"[TemplateCache] Сохранено в кэш: {key} ({templates.Count} шаблонов)");
+
+                string statusText = status == CacheStatus.Error ? "ошибка" :
+                                   status == CacheStatus.LoadedEmpty ? "пусто" : "данные";
+                Logger.Info($"[TemplateCache] Сохранено в кэш: {key} ({templates.Count} шаблонов, статус: {statusText})");
             }
         }
 

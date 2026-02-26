@@ -962,12 +962,25 @@ namespace LersReportGeneratorPlugin.Services
                                 templateId = Convert.ToInt32(tplIdValue);
                         }
 
+                        // Получаем Template.Title (название шаблона)
+                        string templateTitle = null;
+                        var templateProp = repType.GetProperty("Template");
+                        if (templateProp != null)
+                        {
+                            var template = templateProp.GetValue(report);
+                            if (template != null)
+                            {
+                                var templateTitleProp = template.GetType().GetProperty("Title");
+                                templateTitle = templateTitleProp?.GetValue(template) as string;
+                            }
+                        }
+
                         result.Add(new ReportTemplateInfo
                         {
                             ReportId = reportId,           // ID отчёта (Report) - для генерации
                             ReportTemplateId = templateId, // ID шаблона (ReportTemplate)
-                            TemplateTitle = title,
-                            InstanceTitle = title
+                            TemplateTitle = templateTitle ?? title,  // Template.Title или Report.Title
+                            InstanceTitle = title                     // Report.Title
                         });
                     }
                 }
@@ -1005,12 +1018,25 @@ namespace LersReportGeneratorPlugin.Services
                                 templateId = Convert.ToInt32(tplIdValue);
                         }
 
+                        // Получаем Template.Title (название шаблона)
+                        string templateTitle = null;
+                        var templateProp = repType.GetProperty("Template");
+                        if (templateProp != null)
+                        {
+                            var template = templateProp.GetValue(report);
+                            if (template != null)
+                            {
+                                var templateTitleProp = template.GetType().GetProperty("Title");
+                                templateTitle = templateTitleProp?.GetValue(template) as string;
+                            }
+                        }
+
                         result.Add(new ReportTemplateInfo
                         {
                             ReportId = reportId,           // ID отчёта (Report) - для генерации
                             ReportTemplateId = templateId, // ID шаблона (ReportTemplate)
-                            TemplateTitle = title,
-                            InstanceTitle = title
+                            TemplateTitle = templateTitle ?? title,  // Template.Title или Report.Title
+                            InstanceTitle = title                     // Report.Title
                         });
                     }
                 }

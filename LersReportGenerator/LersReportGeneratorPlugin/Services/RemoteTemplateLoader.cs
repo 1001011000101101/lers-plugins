@@ -109,8 +109,8 @@ namespace LersReportGeneratorPlugin.Services
                         {
                             ReportId = t.reportId,
                             ReportTemplateId = t.reportTemplateId ?? t.reportId,
-                            TemplateTitle = t.title,
-                            InstanceTitle = t.title
+                            TemplateTitle = t.templateTitle ?? t.title,  // Template Title (название шаблона)
+                            InstanceTitle = t.title                       // Report Title (название отчёта)
                         });
                     }
 

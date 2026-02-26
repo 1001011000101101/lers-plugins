@@ -17,10 +17,14 @@ namespace LersReportGeneratorPlugin.Services
     public class ReportGenerationController
     {
         private readonly ReportGeneratorService _localReportService;
+        private readonly ReportGeneratorService _reportService;
+        private readonly RemoteTemplateLoader _templateLoader;
 
         public ReportGenerationController(ReportGeneratorService localReportService)
         {
             _localReportService = localReportService ?? throw new ArgumentNullException(nameof(localReportService));
+            _reportService = localReportService; // Для совместимости с новым кодом
+            _templateLoader = new RemoteTemplateLoader();
         }
 
         /// <summary>
@@ -123,8 +127,34 @@ namespace LersReportGeneratorPlugin.Services
                     Logger.Info($"[Локальный] Задача НАЧАТА: {taskStart:HH:mm:ss.fff}");
                     try
                     {
+                        ReportTemplateInfo templateToUse = selectedTemplate;
+
+                        // Для ИПУ - ищем отчёт по названию на этом сервере
+                        if (pointType == MeasurePointType.Apartment)
+                        {
+                            var localTemplates = await _reportService.GetApartmentReportTemplatesAsync();
+                            var foundTemplate = localTemplates.FirstOrDefault(t =>
+                                string.Equals(t.InstanceTitle, selectedTemplate.InstanceTitle, StringComparison.OrdinalIgnoreCase));
+
+                            if (foundTemplate == null)
+                            {
+                                Logger.Info($"[Локальный] Отчёт ИПУ '{selectedTemplate.InstanceTitle}' не найден, сервер пропущен");
+                                allResults.Add(new GenerationResult
+                                {
+                                    Success = true,
+                                    ErrorMessage = $"Локальный сервер: отчёт '{selectedTemplate.InstanceTitle}' не найден",
+                                    MeasurePoint = new MeasurePointInfo { Title = "[Локальный] Пропущен" },
+                                    IsSkipped = true
+                                });
+                                return;
+                            }
+
+                            templateToUse = foundTemplate;
+                            Logger.Info($"[Локальный] Найден отчёт ИПУ: '{foundTemplate.InstanceTitle}' (ReportId={foundTemplate.ReportId})");
+                        }
+
                         var localSummary = await GenerateFromLocalServerAsync(
-                            selectedTemplate, pointType, resourceType, startDate, endDate, format,
+                            templateToUse, pointType, resourceType, startDate, endDate, format,
                             DeliveryMode.SeparateFiles, tempDir,
                             cancellationToken);
 
@@ -184,8 +214,34 @@ namespace LersReportGeneratorPlugin.Services
                         Logger.Info($"[{serverCopy.Name}] Задача НАЧАТА: {taskStart:HH:mm:ss.fff}");
                         try
                         {
+                            ReportTemplateInfo templateToUse = selectedTemplate;
+
+                            // Для ИПУ - ищем отчёт по названию на этом сервере
+                            if (pointType == MeasurePointType.Apartment)
+                            {
+                                var remoteTemplates = await _templateLoader.LoadIpuTemplatesAsync(serverCopy);
+                                var foundTemplate = remoteTemplates.FirstOrDefault(t =>
+                                    string.Equals(t.InstanceTitle, selectedTemplate.InstanceTitle, StringComparison.OrdinalIgnoreCase));
+
+                                if (foundTemplate == null)
+                                {
+                                    Logger.Info($"[{serverCopy.Name}] Отчёт ИПУ '{selectedTemplate.InstanceTitle}' не найден, сервер пропущен");
+                                    allResults.Add(new GenerationResult
+                                    {
+                                        Success = true,
+                                        ErrorMessage = $"{serverCopy.Name}: отчёт '{selectedTemplate.InstanceTitle}' не найден",
+                                        MeasurePoint = new MeasurePointInfo { Title = $"[{serverCopy.Name}] Пропущен" },
+                                        IsSkipped = true
+                                    });
+                                    return;
+                                }
+
+                                templateToUse = foundTemplate;
+                                Logger.Info($"[{serverCopy.Name}] Найден отчёт ИПУ: '{foundTemplate.InstanceTitle}' (ReportId={foundTemplate.ReportId})");
+                            }
+
                             var remoteSummary = await GenerateFromRemoteServerAsync(
-                                serverCopy, selectedTemplate, pointType, resourceType, startDate, endDate, format,
+                                serverCopy, templateToUse, pointType, resourceType, startDate, endDate, format,
                                 tempDir,
                                 null, // progress обрабатывается на уровне серверов
                                 cancellationToken);

@@ -27,7 +27,6 @@ namespace LersReportGeneratorPlugin.Forms
         private readonly RemoteTemplateLoader _templateLoader;
         private readonly TemplateLoadingService _templateLoadingService;
         private readonly ServerConnectionService _serverConnectionService;
-        private ReportTemplateInfo _selectedBatchTemplate;
         private CancellationTokenSource _cts;
 
         // Remote server support
@@ -46,7 +45,7 @@ namespace LersReportGeneratorPlugin.Forms
         private LabelControl lblResourceType;
         private ComboBoxEdit cmbResourceType;
         private LabelControl lblBatchTemplate;
-        private ComboBoxEdit cmbBatchTemplate;
+        private CheckedListBoxControl lstBatchTemplates;
         private LabelControl lblPeriod;
         private ComboBoxEdit cmbPeriod;
         private LabelControl lblStartDate;
@@ -96,7 +95,7 @@ namespace LersReportGeneratorPlugin.Forms
             this.lblResourceType = new LabelControl();
             this.cmbResourceType = new ComboBoxEdit();
             this.lblBatchTemplate = new LabelControl();
-            this.cmbBatchTemplate = new ComboBoxEdit();
+            this.lstBatchTemplates = new CheckedListBoxControl();
             this.lblPeriod = new LabelControl();
             this.cmbPeriod = new ComboBoxEdit();
             this.lblStartDate = new LabelControl();
@@ -165,7 +164,7 @@ namespace LersReportGeneratorPlugin.Forms
             // === Группа настроек ===
             this.grpSettings.Text = "  Параметры генерации";
             this.grpSettings.Location = new Point(12, 120);
-            this.grpSettings.Size = new Size(460, 220);
+            this.grpSettings.Size = new Size(460, 300);
             this.grpSettings.AppearanceCaption.Font = new Font(this.Font.FontFamily, 9F, FontStyle.Bold);
             this.grpSettings.AppearanceCaption.ForeColor = Color.FromArgb(0, 122, 204);
             this.grpSettings.AppearanceCaption.Options.UseFont = true;
@@ -189,42 +188,43 @@ namespace LersReportGeneratorPlugin.Forms
             this.cmbResourceType.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
             this.cmbResourceType.SelectedIndexChanged += cmbResourceType_SelectedIndexChanged;
 
-            // Отчёт
-            this.lblBatchTemplate.Text = "Отчёт:";
+            // Отчёты (множественный выбор)
+            this.lblBatchTemplate.Text = "Отчёты:";
             this.lblBatchTemplate.Location = new Point(15, 80);
-            this.cmbBatchTemplate.Location = new Point(120, 77);
-            this.cmbBatchTemplate.Size = new Size(320, 20);
-            this.cmbBatchTemplate.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
-            this.cmbBatchTemplate.SelectedIndexChanged += cmbBatchTemplate_SelectedIndexChanged;
+            this.lstBatchTemplates.Location = new Point(120, 77);
+            this.lstBatchTemplates.Size = new Size(320, 120);
+            this.lstBatchTemplates.CheckOnClick = true;
+            this.lstBatchTemplates.SelectionMode = SelectionMode.One;
+            this.lstBatchTemplates.DisplayMember = "DisplayTitle";
 
             // Период
             this.lblPeriod.Text = "Период:";
-            this.lblPeriod.Location = new Point(15, 108);
-            this.cmbPeriod.Location = new Point(120, 105);
+            this.lblPeriod.Location = new Point(15, 205);
+            this.cmbPeriod.Location = new Point(120, 202);
             this.cmbPeriod.Size = new Size(150, 20);
             this.cmbPeriod.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
             this.cmbPeriod.SelectedIndexChanged += cmbPeriod_SelectedIndexChanged;
 
             // Дата начала (на отдельной строке)
             this.lblStartDate.Text = "с";
-            this.lblStartDate.Location = new Point(15, 136);
+            this.lblStartDate.Location = new Point(15, 233);
             this.lblStartDate.Visible = false;
-            this.dtpStart.Location = new Point(30, 133);
+            this.dtpStart.Location = new Point(30, 230);
             this.dtpStart.Size = new Size(120, 20);
             this.dtpStart.Visible = false;
 
             // Дата окончания
             this.lblEndDate.Text = "по";
-            this.lblEndDate.Location = new Point(160, 136);
+            this.lblEndDate.Location = new Point(160, 233);
             this.lblEndDate.Visible = false;
-            this.dtpEnd.Location = new Point(180, 133);
+            this.dtpEnd.Location = new Point(180, 230);
             this.dtpEnd.Size = new Size(120, 20);
             this.dtpEnd.Visible = false;
 
             // Формат (сдвигаем вниз когда даты скрыты, или ещё ниже когда показаны)
             this.lblFormat.Text = "Формат:";
-            this.lblFormat.Location = new Point(15, 136);
-            this.cmbFormat.Location = new Point(120, 133);
+            this.lblFormat.Location = new Point(15, 233);
+            this.cmbFormat.Location = new Point(120, 230);
             this.cmbFormat.Size = new Size(150, 20);
             this.cmbFormat.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
 
@@ -240,7 +240,7 @@ namespace LersReportGeneratorPlugin.Forms
             this.grpSettings.Controls.Add(this.lblResourceType);
             this.grpSettings.Controls.Add(this.cmbResourceType);
             this.grpSettings.Controls.Add(this.lblBatchTemplate);
-            this.grpSettings.Controls.Add(this.cmbBatchTemplate);
+            this.grpSettings.Controls.Add(this.lstBatchTemplates);
             this.grpSettings.Controls.Add(this.lblPeriod);
             this.grpSettings.Controls.Add(this.cmbPeriod);
             this.grpSettings.Controls.Add(this.lblStartDate);
@@ -254,7 +254,7 @@ namespace LersReportGeneratorPlugin.Forms
 
             // === Группа вывода ===
             this.grpOutput.Text = "  Сохранение";
-            this.grpOutput.Location = new Point(12, 348);
+            this.grpOutput.Location = new Point(12, 428);
             this.grpOutput.Size = new Size(460, 65);
             this.grpOutput.AppearanceCaption.Font = new Font(this.Font.FontFamily, 9F, FontStyle.Bold);
             this.grpOutput.AppearanceCaption.ForeColor = Color.FromArgb(0, 122, 204);
@@ -281,7 +281,7 @@ namespace LersReportGeneratorPlugin.Forms
 
             // === Кнопки ===
             this.btnGenerate.Text = "  Сгенерировать";
-            this.btnGenerate.Location = new Point(277, 426);
+            this.btnGenerate.Location = new Point(277, 505);
             this.btnGenerate.Size = new Size(115, 32);
             this.btnGenerate.Appearance.BackColor = Color.FromArgb(0, 122, 204);
             this.btnGenerate.Appearance.ForeColor = Color.White;
@@ -292,7 +292,7 @@ namespace LersReportGeneratorPlugin.Forms
             this.btnGenerate.Click += btnGenerate_Click;
 
             this.btnClose.Text = "Закрыть";
-            this.btnClose.Location = new Point(397, 426);
+            this.btnClose.Location = new Point(397, 505);
             this.btnClose.Size = new Size(75, 32);
             this.btnClose.Click += (s, e) => {
                 _remoteClient?.Dispose();
@@ -300,12 +300,12 @@ namespace LersReportGeneratorPlugin.Forms
             };
 
             // === Прогресс ===
-            this.progressBar.Location = new Point(12, 468);
+            this.progressBar.Location = new Point(12, 549);
             this.progressBar.Size = new Size(460, 22);
             this.progressBar.Properties.ShowTitle = true;
             this.progressBar.Visible = false;
 
-            this.lblStatus.Location = new Point(12, 496);
+            this.lblStatus.Location = new Point(12, 579);
             this.lblStatus.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblStatus.Size = new Size(460, 20);
             this.lblStatus.Text = "";
@@ -315,7 +315,7 @@ namespace LersReportGeneratorPlugin.Forms
             // === Форма ===
             this.AutoScaleDimensions = new SizeF(6F, 13F);
             this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(484, 528);
+            this.ClientSize = new Size(484, 610);
             this.MainMenuStrip = this.mainMenu;
             this.Controls.Add(this.mainMenu);
             this.Controls.Add(this.grpServer);
@@ -341,6 +341,128 @@ namespace LersReportGeneratorPlugin.Forms
             // Применяем layout для текущего периода
             cmbPeriod_SelectedIndexChanged(sender, e);
             await LoadBatchTemplatesAsync();
+
+            // Запускаем предзагрузку шаблонов в фоне
+            PreloadAllTemplatesInBackground();
+        }
+
+        /// <summary>
+        /// Предзагрузка шаблонов со всех серверов в фоновом режиме для ускорения работы
+        /// </summary>
+        private void PreloadAllTemplatesInBackground()
+        {
+            Logger.Info("[Предзагрузка] Метод PreloadAllTemplatesInBackground вызван");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    Logger.Info("[Предзагрузка] Начало фоновой загрузки шаблонов");
+                    Logger.Info("[Предзагрузка] Task.Run запущен");
+
+                    // ИПУ - все серверы (тип ресурса не используется)
+                    Logger.Info("[Предзагрузка] Начинаем загрузку шаблонов ИПУ со всех серверов...");
+                    var ipuResult = await _templateLoadingService.LoadTemplatesAsync(
+                        MeasurePointType.Apartment,
+                        ResourceType.All,
+                        false,
+                        null,
+                        true, // все серверы
+                        null
+                    );
+                    Logger.Info($"[Предзагрузка] ИПУ загружено: {ipuResult.Templates.Count} шаблонов");
+
+                    // ОДПУ - все серверы, все типы ресурсов
+                    var resourceTypes = new[] {
+                        ResourceType.All,          // Все ресурсы (самая частая комбинация)
+                        ResourceType.Water,        // ХВС/ГВС
+                        ResourceType.Heat,
+                        ResourceType.Electricity
+                    };
+
+                    foreach (var resourceType in resourceTypes)
+                    {
+                        Logger.Info($"[Предзагрузка] Загрузка шаблонов ОДПУ ({resourceType.GetDisplayName()}) со всех серверов");
+                        await _templateLoadingService.LoadTemplatesAsync(
+                            MeasurePointType.Building,
+                            resourceType,
+                            false,
+                            null,
+                            true, // все серверы
+                            null
+                        );
+                    }
+
+                    Logger.Info("[Предзагрузка] Фоновая загрузка шаблонов завершена успешно");
+
+                    // Ждём 30 секунд и пробуем повторно загрузить с серверов, где была ошибка
+                    await Task.Delay(TimeSpan.FromSeconds(30));
+                    await RetryFailedServersAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("[Предзагрузка] Ошибка фоновой загрузки шаблонов", ex);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Повторная попытка загрузки для серверов с ошибками (status == Error)
+        /// </summary>
+        private async Task RetryFailedServersAsync()
+        {
+            try
+            {
+                Logger.Info("[Повтор] Начинаем повторную загрузку для серверов с ошибками");
+
+                var pointTypes = new[] { MeasurePointType.Apartment, MeasurePointType.Building };
+                var resourceTypes = new[] { ResourceType.All, ResourceType.Water, ResourceType.Heat, ResourceType.Electricity };
+
+                foreach (var pointType in pointTypes)
+                {
+                    foreach (var resourceType in resourceTypes)
+                    {
+                        // Для ИПУ пропускаем не-All типы ресурсов
+                        if (pointType == MeasurePointType.Apartment && resourceType != ResourceType.All)
+                            continue;
+
+                        // Проверяем статус в кэше
+                        var status = TemplateCache.GetStatus(null, pointType, resourceType);
+                        if (status == CacheStatus.Error)
+                        {
+                            Logger.Info($"[Повтор] Локальный сервер: повторная загрузка ({pointType}, {resourceType.GetDisplayName()})");
+
+                            // Очищаем кэш для этой комбинации чтобы загрузилось заново
+                            TemplateCache.Invalidate(null);
+
+                            await _templateLoadingService.LoadTemplatesAsync(
+                                pointType, resourceType, false, null, true, null);
+                        }
+
+                        // Проверяем удалённые серверы
+                        foreach (var server in SettingsService.Instance.Servers)
+                        {
+                            status = TemplateCache.GetStatus(server.Name, pointType, resourceType);
+                            if (status == CacheStatus.Error)
+                            {
+                                Logger.Info($"[Повтор] {server.Name}: повторная загрузка ({pointType}, {resourceType.GetDisplayName()})");
+
+                                // Очищаем кэш для этого сервера
+                                TemplateCache.Invalidate(server.Name);
+
+                                await _templateLoadingService.LoadTemplatesAsync(
+                                    pointType, resourceType, false, null, true, null);
+                            }
+                        }
+                    }
+                }
+
+                Logger.Info("[Повтор] Повторная загрузка завершена");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("[Повтор] Ошибка повторной загрузки", ex);
+            }
         }
 
         private void InitializeFormData()
@@ -490,6 +612,20 @@ namespace LersReportGeneratorPlugin.Forms
 
         private async void rgPointType_SelectedIndexChanged(object sender, EventArgs e)
         {
+            var pointType = GetSelectedPointType();
+
+            // Для ИПУ - тип ресурса не используется, деактивируем
+            if (pointType == MeasurePointType.Apartment)
+            {
+                cmbResourceType.Enabled = false;
+                lblResourceType.Enabled = false;
+            }
+            else
+            {
+                cmbResourceType.Enabled = true;
+                lblResourceType.Enabled = true;
+            }
+
             await LoadBatchTemplatesAsync();
         }
 
@@ -509,10 +645,9 @@ namespace LersReportGeneratorPlugin.Forms
             var pointType = GetSelectedPointType();
             var resourceType = GetSelectedResourceType();
 
-            cmbBatchTemplate.Properties.Items.Clear();
-            cmbBatchTemplate.Properties.Items.Add("Загрузка...");
-            cmbBatchTemplate.SelectedIndex = 0;
-            cmbBatchTemplate.Enabled = false;
+            lstBatchTemplates.Items.Clear();
+            lstBatchTemplates.Items.Add("Загрузка...");
+            lstBatchTemplates.Enabled = false;
             rgPointType.Enabled = false;
             cmbResourceType.Enabled = false;
 
@@ -540,10 +675,9 @@ namespace LersReportGeneratorPlugin.Forms
 
                 if (result.EmptyMessage != null)
                 {
-                    cmbBatchTemplate.Properties.Items.Clear();
-                    cmbBatchTemplate.Properties.Items.Add(result.EmptyMessage);
-                    cmbBatchTemplate.SelectedIndex = 0;
-                    lblStatus.Text = result.EmptyMessage;
+                    lstBatchTemplates.Items.Clear();
+                    lstBatchTemplates.Items.Add(result.EmptyMessage);
+                            lblStatus.Text = result.EmptyMessage;
                     return;
                 }
 
@@ -551,16 +685,17 @@ namespace LersReportGeneratorPlugin.Forms
             }
             catch (Exception ex)
             {
-                cmbBatchTemplate.Properties.Items.Clear();
-                cmbBatchTemplate.Properties.Items.Add($"Ошибка: {ex.Message}");
-                cmbBatchTemplate.SelectedIndex = 0;
-                lblStatus.Text = $"Ошибка загрузки: {ex.Message}";
+                lstBatchTemplates.Items.Clear();
+                lstBatchTemplates.Items.Add($"Ошибка: {ex.Message}");
+                    lblStatus.Text = $"Ошибка загрузки: {ex.Message}";
             }
             finally
             {
-                cmbBatchTemplate.Enabled = true;
+                lstBatchTemplates.Enabled = true;
                 rgPointType.Enabled = true;
-                cmbResourceType.Enabled = true;
+                // Для ИПУ - тип ресурса остаётся отключенным
+                cmbResourceType.Enabled = (pointType != MeasurePointType.Apartment);
+                lblResourceType.Enabled = (pointType != MeasurePointType.Apartment);
                 _isLoadingTemplates = false;
             }
         }
@@ -570,25 +705,29 @@ namespace LersReportGeneratorPlugin.Forms
         /// </summary>
         private void DisplayTemplates(List<ReportTemplateInfo> templates, string source = null)
         {
-            cmbBatchTemplate.Properties.Items.Clear();
-            cmbBatchTemplate.Enabled = true;
+            lstBatchTemplates.Items.Clear();
+            lstBatchTemplates.Enabled = true;
             rgPointType.Enabled = true;
-            cmbResourceType.Enabled = true;
+
+            // Для ИПУ - тип ресурса остаётся отключенным
+            var pointType = GetSelectedPointType();
+            cmbResourceType.Enabled = (pointType != MeasurePointType.Apartment);
+            lblResourceType.Enabled = (pointType != MeasurePointType.Apartment);
 
             if (templates == null || templates.Count == 0)
             {
-                cmbBatchTemplate.Properties.Items.Add("Нет шаблонов");
-                cmbBatchTemplate.SelectedIndex = 0;
+                lstBatchTemplates.Items.Add("Нет шаблонов");
                 lblStatus.Text = "Нет шаблонов";
+                lstBatchTemplates.Enabled = false;
                 return;
             }
 
             foreach (var template in templates)
             {
-                cmbBatchTemplate.Properties.Items.Add(template);
+                // Для DevExpress CheckedListBoxControl просто добавляем элемент
+                // По умолчанию все элементы будут Unchecked
+                lstBatchTemplates.Items.Add(template);
             }
-            cmbBatchTemplate.SelectedIndex = 0;
-            _selectedBatchTemplate = templates[0];
 
             var countText = $"{templates.Count} {Pluralize(templates.Count, "шаблон", "шаблона", "шаблонов")}";
             lblStatus.Text = source != null
@@ -596,14 +735,6 @@ namespace LersReportGeneratorPlugin.Forms
                 : $"Загружено {countText}";
         }
 
-        private void cmbBatchTemplate_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            var template = cmbBatchTemplate.SelectedItem as ReportTemplateInfo;
-            if (template != null)
-            {
-                _selectedBatchTemplate = template;
-            }
-        }
 
         private void cmbPeriod_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -614,8 +745,9 @@ namespace LersReportGeneratorPlugin.Forms
             dtpEnd.Visible = isCustom;
 
             // Сдвигаем контролы формата и режима в зависимости от видимости дат
-            int formatY = isCustom ? 164 : 136;
-            int deliveryY = isCustom ? 192 : 164;
+            // С учётом нового размера lstBatchTemplates (120px)
+            int formatY = isCustom ? 260 : 233;
+            int deliveryY = isCustom ? 288 : 261;
 
             lblFormat.Location = new Point(15, formatY);
             cmbFormat.Location = new Point(120, formatY - 3);
@@ -623,7 +755,9 @@ namespace LersReportGeneratorPlugin.Forms
             cmbDelivery.Location = new Point(120, deliveryY - 3);
 
             // Подстраиваем высоту группы настроек
-            grpSettings.Height = isCustom ? 248 : 220;
+            // 300 для обычных периодов (с учётом lstBatchTemplates высотой 120)
+            // 330 для кастомного периода (+ дополнительные элементы даты)
+            grpSettings.Height = isCustom ? 330 : 300;
 
             // Сдвигаем группу вывода и кнопки
             grpOutput.Location = new Point(12, grpSettings.Bottom + 12);
@@ -695,9 +829,10 @@ namespace LersReportGeneratorPlugin.Forms
 
         private async void btnGenerate_Click(object sender, EventArgs e)
         {
-            if (_selectedBatchTemplate == null)
+            var selectedTemplates = GetSelectedTemplates();
+            if (selectedTemplates.Count == 0)
             {
-                XtraMessageBox.Show("Выберите отчёт", "Внимание",
+                XtraMessageBox.Show("Выберите хотя бы один отчёт", "Внимание",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -729,33 +864,58 @@ namespace LersReportGeneratorPlugin.Forms
 
             try
             {
-                var progress = new Progress<Tuple<int, int, string>>(p =>
-                {
-                    if (p.Item2 > 0)
-                    {
-                        progressBar.Properties.Maximum = p.Item2;
-                        progressBar.EditValue = Math.Min(p.Item1, p.Item2);
-                    }
-                    lblStatus.Text = $"{p.Item1}/{p.Item2}: {p.Item3}";
-                });
+                var allResults = new List<GenerationResult>();
+                string zipFilePath = null;
+                int currentTemplateIndex = 0;
 
-                var summary = await _generationController.GenerateAsync(
-                    _selectedBatchTemplate,
-                    pointType,
-                    resourceType,
-                    startDate,
-                    endDate,
-                    format,
-                    deliveryMode,
-                    outputPath,
-                    _isRemoteMode,
-                    _selectedRemoteServer,
-                    chkAllServers.Checked,
-                    progress,
-                    _cts.Token);
+                foreach (var template in selectedTemplates)
+                {
+                    currentTemplateIndex++;
+                    var templateProgress = new Progress<Tuple<int, int, string>>(p =>
+                    {
+                        if (p.Item2 > 0)
+                        {
+                            progressBar.Properties.Maximum = p.Item2 * selectedTemplates.Count;
+                            progressBar.EditValue = Math.Min(p.Item1 + (currentTemplateIndex - 1) * p.Item2, p.Item2 * selectedTemplates.Count);
+                        }
+                        lblStatus.Text = $"[{currentTemplateIndex}/{selectedTemplates.Count}] {template.DisplayTitle}: {p.Item1}/{p.Item2} - {p.Item3}";
+                    });
+
+                    var summary = await _generationController.GenerateAsync(
+                        template,
+                        pointType,
+                        resourceType,
+                        startDate,
+                        endDate,
+                        format,
+                        deliveryMode,
+                        outputPath,
+                        _isRemoteMode,
+                        _selectedRemoteServer,
+                        chkAllServers.Checked,
+                        templateProgress,
+                        _cts.Token);
+
+                    allResults.AddRange(summary.Results);
+                    if (!string.IsNullOrEmpty(summary.ZipFilePath))
+                    {
+                        zipFilePath = summary.ZipFilePath;
+                    }
+                }
 
                 stopwatch.Stop();
-                ShowBatchResults(summary, deliveryMode, stopwatch.Elapsed);
+
+                // Создаём объединённый summary
+                var combinedSummary = new BatchGenerationSummary
+                {
+                    Results = allResults,
+                    TotalCount = allResults.Count,
+                    SuccessCount = allResults.Count(r => r.Success),
+                    FailedCount = allResults.Count(r => !r.Success),
+                    ZipFilePath = zipFilePath
+                };
+
+                ShowBatchResults(combinedSummary, deliveryMode, stopwatch.Elapsed);
             }
             catch (OperationCanceledException)
             {
@@ -779,8 +939,13 @@ namespace LersReportGeneratorPlugin.Forms
         private void SetControlsEnabled(bool enabled)
         {
             rgPointType.Enabled = enabled;
-            cmbResourceType.Enabled = enabled;
-            cmbBatchTemplate.Enabled = enabled;
+
+            // Для ИПУ - тип ресурса всегда отключен
+            var pointType = GetSelectedPointType();
+            cmbResourceType.Enabled = enabled && (pointType != MeasurePointType.Apartment);
+            lblResourceType.Enabled = enabled && (pointType != MeasurePointType.Apartment);
+
+            lstBatchTemplates.Enabled = enabled;
             cmbDelivery.Enabled = enabled;
             cmbPeriod.Enabled = enabled;
             dtpStart.Enabled = enabled;
@@ -828,6 +993,39 @@ namespace LersReportGeneratorPlugin.Forms
         {
             var item = cmbResourceType.SelectedItem as ComboBoxItem<ResourceType>;
             return item != null ? item.Value : ResourceType.All;
+        }
+
+        private List<ReportTemplateInfo> GetSelectedTemplates()
+        {
+            var selected = new List<ReportTemplateInfo>();
+
+            Logger.Debug($"[GetSelectedTemplates] Items.Count = {lstBatchTemplates.Items.Count}");
+            Logger.Debug($"[GetSelectedTemplates] CheckedIndices.Count = {lstBatchTemplates.CheckedIndices.Count}");
+
+            // Используем CheckedIndices для DevExpress CheckedListBoxControl
+            foreach (int index in lstBatchTemplates.CheckedIndices)
+            {
+                Logger.Debug($"[GetSelectedTemplates] Checked index: {index}");
+
+                // Для DevExpress CheckedListBoxControl Items[index] возвращает CheckedListBoxItem
+                // Нужно получить Value из него
+                var item = lstBatchTemplates.Items[index];
+                Logger.Debug($"[GetSelectedTemplates] Item type: {item?.GetType().Name}");
+
+                if (item is DevExpress.XtraEditors.Controls.CheckedListBoxItem checkedItem)
+                {
+                    Logger.Debug($"[GetSelectedTemplates] CheckedItem.Value type: {checkedItem.Value?.GetType().Name}");
+
+                    if (checkedItem.Value is ReportTemplateInfo template)
+                    {
+                        selected.Add(template);
+                        Logger.Debug($"[GetSelectedTemplates] Added: '{template.DisplayTitle}'");
+                    }
+                }
+            }
+
+            Logger.Info($"[GetSelectedTemplates] Total selected: {selected.Count}");
+            return selected;
         }
 
         private ReportPeriod GetSelectedPeriod()

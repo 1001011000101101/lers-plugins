@@ -396,13 +396,26 @@ namespace LersReportProxy.Services
                             templateId = Convert.ToInt32(tplIdValue);
                     }
 
-                    Logger.Info($"GetIpuTemplatesAsync: отчёт [{count}]: Id={reportId}, TemplateId={templateId}, Title={title}");
+                    // Получаем Template.Title (название шаблона)
+                    string templateTitle = null;
+                    var templateProp = repType.GetProperty("Template");
+                    if (templateProp != null)
+                    {
+                        var template = templateProp.GetValue(report);
+                        if (template != null)
+                        {
+                            templateTitle = ReflectionHelper.GetPropertyValue<string>(template, "Title");
+                        }
+                    }
+
+                    Logger.Info($"GetIpuTemplatesAsync: отчёт [{count}]: Id={reportId}, TemplateId={templateId}, Title={title}, TemplateTitle={templateTitle}");
 
                     templates.Add(new
                     {
                         reportId = reportId,
                         reportTemplateId = templateId,
                         title = title,
+                        templateTitle = templateTitle ?? title,
                         reportType = "CommunalMeasurePointSummary"
                     });
                 }

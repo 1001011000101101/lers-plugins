@@ -57,16 +57,21 @@ namespace LersReportGeneratorPlugin.Services
             bool allServersMode,
             Action<string> progressCallback = null)
         {
-            // Проверяем кэш
-            string cacheServerName = GetCacheServerName(allServersMode, isRemoteMode, selectedRemoteServer);
-            var cachedTemplates = TemplateCache.Get(cacheServerName, pointType, resourceType);
-            if (cachedTemplates != null)
+            // Для режима "все серверы" - не используем общий кэш,
+            // каждый сервер проверяется отдельно в LoadTemplatesFromAllServersAsync
+            if (!allServersMode)
             {
-                return new TemplateLoadingResult
+                // Проверяем кэш для одного сервера
+                string cacheServerName = GetCacheServerName(allServersMode, isRemoteMode, selectedRemoteServer);
+                var cachedTemplates = TemplateCache.Get(cacheServerName, pointType, resourceType);
+                if (cachedTemplates != null)
                 {
-                    Templates = cachedTemplates,
-                    FromCache = true
-                };
+                    return new TemplateLoadingResult
+                    {
+                        Templates = cachedTemplates,
+                        FromCache = true
+                    };
+                }
             }
 
             progressCallback?.Invoke("Загрузка списка отчётов...");
@@ -74,10 +79,12 @@ namespace LersReportGeneratorPlugin.Services
             var result = await LoadTemplatesFromSourceAsync(
                 pointType, resourceType, isRemoteMode, selectedRemoteServer, allServersMode, progressCallback);
 
-            // Сохраняем в кэш если есть шаблоны
-            if (result.Templates.Count > 0)
+            // Сохраняем в кэш (только для одного сервера, даже пустой результат)
+            if (!allServersMode)
             {
-                TemplateCache.Set(cacheServerName, pointType, resourceType, result.Templates);
+                string cacheServerName = GetCacheServerName(allServersMode, isRemoteMode, selectedRemoteServer);
+                var status = result.Templates.Count > 0 ? CacheStatus.LoadedWithData : CacheStatus.LoadedEmpty;
+                TemplateCache.Set(cacheServerName, pointType, resourceType, result.Templates, status);
             }
 
             return result;
@@ -91,14 +98,16 @@ namespace LersReportGeneratorPlugin.Services
             bool allServersMode,
             Action<string> progressCallback)
         {
+            // ВАЖНО: проверка allServersMode должна быть ПЕРВОЙ!
+            // Иначе isRemoteMode перехватит управление
+            if (allServersMode)
+            {
+                return await LoadTemplatesFromAllServersAsync(pointType, resourceType, progressCallback);
+            }
+
             if (pointType == MeasurePointType.Apartment && isRemoteMode && selectedRemoteServer != null)
             {
                 return await LoadRemoteApartmentTemplatesAsync(selectedRemoteServer);
-            }
-
-            if (pointType == MeasurePointType.Apartment && allServersMode)
-            {
-                return await LoadTemplatesFromAllServersAsync(pointType, resourceType, progressCallback);
             }
 
             if (pointType == MeasurePointType.Apartment)
@@ -109,11 +118,6 @@ namespace LersReportGeneratorPlugin.Services
             if (isRemoteMode && selectedRemoteServer != null)
             {
                 return await LoadRemoteOdpuTemplatesAsync(selectedRemoteServer, resourceType);
-            }
-
-            if (allServersMode)
-            {
-                return await LoadTemplatesFromAllServersAsync(pointType, resourceType, progressCallback);
             }
 
             return await LoadLocalOdpuTemplatesAsync(pointType, resourceType);
@@ -237,18 +241,40 @@ namespace LersReportGeneratorPlugin.Services
                 try
                 {
                     List<ReportTemplateInfo> localTemplates;
-                    if (pointType == MeasurePointType.Apartment)
+
+                    // Проверяем кэш для локального сервера
+                    var cachedLocal = TemplateCache.Get(null, pointType, resourceType);
+                    if (cachedLocal != null)
                     {
-                        localTemplates = await _reportService.GetApartmentReportTemplatesAsync();
+                        localTemplates = cachedLocal;
+                        Logger.Info($"Локальный сервер: загружено из кэша {localTemplates.Count} шаблонов");
                     }
                     else
                     {
-                        localTemplates = await _reportService.GetAggregatedOdpuTemplatesAsync(resourceType);
+                        // Загружаем с локального сервера
+                        if (pointType == MeasurePointType.Apartment)
+                        {
+                            localTemplates = await _reportService.GetApartmentReportTemplatesAsync();
+                        }
+                        else
+                        {
+                            localTemplates = await _reportService.GetAggregatedOdpuTemplatesAsync(resourceType);
+                        }
+
+                        // Сохраняем в кэш (даже пустой результат, чтобы избежать повторных запросов)
+                        var status = localTemplates.Count > 0 ? CacheStatus.LoadedWithData : CacheStatus.LoadedEmpty;
+                        TemplateCache.Set(null, pointType, resourceType, localTemplates, status);
+
+                        Logger.Info($"Локальный сервер: загружено {localTemplates.Count} шаблонов");
                     }
 
                     foreach (var t in localTemplates)
                     {
-                        string key = t.InstanceTitle ?? t.TemplateTitle ?? $"Report_{t.ReportId}";
+                        // Для ИПУ - уникализация по названию отчёта (InstanceTitle)
+                        // Для ОДПУ - по названию шаблона (TemplateTitle)
+                        string key = (pointType == MeasurePointType.Apartment)
+                            ? (t.InstanceTitle ?? t.TemplateTitle ?? $"Report_{t.ReportId}")
+                            : (t.TemplateTitle ?? $"Report_{t.ReportId}");
                         allTemplates.TryAdd(key, t);
                     }
                     Logger.Info($"Локальный сервер: загружено {localTemplates.Count} шаблонов");
@@ -258,6 +284,11 @@ namespace LersReportGeneratorPlugin.Services
                 {
                     errors.Add($"Локальный: {ex.Message}");
                     Logger.Error($"Ошибка загрузки шаблонов с локального сервера: {ex.Message}");
+
+                    // Сохраняем ошибку в кэш (можно будет повторить попытку позже)
+                    TemplateCache.Set(null, pointType, resourceType, new List<ReportTemplateInfo>(), CacheStatus.Error);
+                    Logger.Info("Локальный сервер: сохранена ошибка в кэш (сервер недоступен)");
+
                     UpdateProgress("Локальный (ошибка)");
                 }
             }));
@@ -271,18 +302,40 @@ namespace LersReportGeneratorPlugin.Services
                     try
                     {
                         List<ReportTemplateInfo> remoteTemplates;
-                        if (pointType == MeasurePointType.Apartment)
+
+                        // Проверяем кэш для этого сервера
+                        var cachedRemote = TemplateCache.Get(serverCopy.Name, pointType, resourceType);
+                        if (cachedRemote != null)
                         {
-                            remoteTemplates = await _templateLoader.LoadIpuTemplatesAsync(serverCopy);
+                            remoteTemplates = cachedRemote;
+                            Logger.Info($"{serverCopy.Name}: загружено из кэша {remoteTemplates.Count} шаблонов");
                         }
                         else
                         {
-                            remoteTemplates = await _templateLoader.LoadOdpuTemplatesAsync(serverCopy, resourceType);
+                            // Загружаем с удалённого сервера
+                            if (pointType == MeasurePointType.Apartment)
+                            {
+                                remoteTemplates = await _templateLoader.LoadIpuTemplatesAsync(serverCopy);
+                            }
+                            else
+                            {
+                                remoteTemplates = await _templateLoader.LoadOdpuTemplatesAsync(serverCopy, resourceType);
+                            }
+
+                            // Сохраняем в кэш (даже пустой результат, чтобы избежать повторных запросов)
+                            var status = remoteTemplates.Count > 0 ? CacheStatus.LoadedWithData : CacheStatus.LoadedEmpty;
+                            TemplateCache.Set(serverCopy.Name, pointType, resourceType, remoteTemplates, status);
+
+                            Logger.Info($"{serverCopy.Name}: загружено {remoteTemplates.Count} шаблонов");
                         }
 
                         foreach (var t in remoteTemplates)
                         {
-                            string key = t.InstanceTitle ?? t.TemplateTitle ?? $"Report_{t.ReportId}";
+                            // Для ИПУ - уникализация по названию отчёта (InstanceTitle)
+                            // Для ОДПУ - по названию шаблона (TemplateTitle)
+                            string key = (pointType == MeasurePointType.Apartment)
+                                ? (t.InstanceTitle ?? t.TemplateTitle ?? $"Report_{t.ReportId}")
+                                : (t.TemplateTitle ?? $"Report_{t.ReportId}");
                             allTemplates.TryAdd(key, t);
                         }
                         Logger.Info($"{serverCopy.Name}: загружено {remoteTemplates.Count} шаблонов");
@@ -292,6 +345,11 @@ namespace LersReportGeneratorPlugin.Services
                     {
                         errors.Add($"{serverCopy.Name}: {ex.Message}");
                         Logger.Error($"Ошибка загрузки шаблонов с {serverCopy.Name}: {ex.Message}");
+
+                        // Сохраняем ошибку в кэш (можно будет повторить попытку позже)
+                        TemplateCache.Set(serverCopy.Name, pointType, resourceType, new List<ReportTemplateInfo>(), CacheStatus.Error);
+                        Logger.Info($"{serverCopy.Name}: сохранена ошибка в кэш (сервер недоступен)");
+
                         UpdateProgress($"{serverCopy.Name} (ошибка)");
                     }
                 }));

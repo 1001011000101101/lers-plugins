@@ -74,8 +74,12 @@ $AssemblyInfoPath = Join-Path $ScriptDir "Properties\AssemblyInfo.cs"
 $HashFilePath = Join-Path $ScriptDir ".build-hash"
 
 function Get-SourceHash {
+    # Исключаем AssemblyInfo.cs из хеша, т.к. он изменяется при обновлении версии
     $csFiles = Get-ChildItem -Path $ScriptDir -Filter "*.cs" -Recurse |
-               Where-Object { $_.FullName -notmatch "\\(bin|obj)\\" } |
+               Where-Object {
+                   $_.FullName -notmatch "\\(bin|obj)\\" -and
+                   $_.Name -ne "AssemblyInfo.cs"
+               } |
                Sort-Object FullName
 
     $allContent = ""

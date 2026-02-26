@@ -14,5 +14,5 @@ using Lers.Plugins;
 [assembly: AssemblyCompany("Матюшкин Роман")]
 [assembly: AssemblyProduct("LersReportGeneratorPlugin")]
 [assembly: AssemblyCopyright("Copyright 2026 Матюшкин Роман")]
-[assembly: AssemblyVersion("1.0.35.0")]
-[assembly: AssemblyFileVersion("1.0.35.0")]
+[assembly: AssemblyVersion("1.0.41.0")]
+[assembly: AssemblyFileVersion("1.0.41.0")]
